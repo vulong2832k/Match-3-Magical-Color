@@ -73,17 +73,25 @@ public class BoardManager : MonoBehaviour
 
         int darkCount = Random.Range(15, 41);
 
-        for (int i = 0; i < darkCount; i++)
-        {
-            Vector2Int p = allPos[i];
+        int placed = 0;
+        int index = 0;
 
+        while (placed < darkCount && index < allPos.Count)
+        {
+            Vector2Int p = allPos[index];
+            index++;
+
+            if (!CanPlaceDark(p.x, p.y))
+                continue;
+
+            // đặt ô đen
             Destroy(cellMap[p.x, p.y]);
 
-            GameObject dark = Instantiate(cellDarkPrefab, new Vector3(p.x, p.y, 0), Quaternion.identity);
-            dark.transform.parent = transform;
-
+            GameObject dark = Instantiate(cellDarkPrefab, new Vector3(p.x, p.y, 0), Quaternion.identity, transform);
             cellMap[p.x, p.y] = dark;
+
             _isBright[p.x, p.y] = false;
+            placed++;
         }
         //Spawn Tile lên ô Bright
         for (int x = 0; x < _width; x++)
@@ -96,6 +104,60 @@ public class BoardManager : MonoBehaviour
                 }
             }
         }
+    }
+    private bool BreaksHorizontalWhite(int x, int y)
+    {
+        int count = 1;
+
+        // trái
+        int i = x - 1;
+        while (i >= 0 && _isBright[i, y])
+        {
+            count++;
+            i--;
+        }
+
+        // phải
+        i = x + 1;
+        while (i < _width && _isBright[i, y])
+        {
+            count++;
+            i++;
+        }
+
+        return count < 3;
+    }
+    private bool BreaksVerticalWhite(int x, int y)
+    {
+        int count = 1;
+
+        // dưới
+        int j = y - 1;
+        while (j >= 0 && _isBright[x, j])
+        {
+            count++;
+            j--;
+        }
+
+        // trên
+        j = y + 1;
+        while (j < _height && _isBright[x, j])
+        {
+            count++;
+            j++;
+        }
+
+        return count < 5;
+    }
+    private bool CanPlaceDark(int x, int y)
+    {
+        if (BreaksHorizontalWhite(x, y))
+            return false;
+
+        if (BreaksVerticalWhite(x, y))
+            return false;
+
+        return true;
     }
 
 
@@ -340,10 +402,12 @@ public class BoardManager : MonoBehaviour
                 Vector3 target = new Vector3(x, ny, -1);
 
                 float t = 0;
-                while (t < 0.25f)
+                float fallDuration = 0.08f;
+
+                while (t < fallDuration)
                 {
                     t += Time.deltaTime;
-                    tile.transform.localPosition = Vector3.Lerp(start, target, t * 4);
+                    tile.transform.localPosition = Vector3.Lerp(start, target, t / fallDuration);
                     yield return null;
                 }
             }
